@@ -4,6 +4,7 @@ import {
   downloadObjectToPath,
   downloadPrefix,
   downloadToTemp,
+  deleteObjects,
   listBuckets,
   listObjects,
   uploadPaths,
@@ -90,6 +91,17 @@ ipcMain.handle('gcs:choose-upload', async () => {
 ipcMain.handle('gcs:upload', async (_event, req) => {
   try {
     await uploadPaths(req);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+});
+
+ipcMain.handle('gcs:delete', async (_event, req) => {
+  try {
+    const { bucket, names } = req as { bucket: string; names: string[] };
+    if (!bucket || !names?.length) return { ok: false, error: 'No files selected' };
+    await deleteObjects(bucket, names);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: String(err) };

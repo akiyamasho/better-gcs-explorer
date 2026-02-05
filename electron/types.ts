@@ -41,3 +41,8 @@ export type StartDragRequest = {
   bucket: string;
   name: string;
 };
+
+export type DeleteRequest = {
+  bucket: string;
+  names: string[];
+};

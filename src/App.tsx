@@ -142,8 +142,10 @@ const App = () => {
   const [expandedPrefixes, setExpandedPrefixes] = useState<Record<string, boolean>>({ '': true });
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchIndex, setSearchIndex] = useState(0);
   const [showPathModal, setShowPathModal] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(
     null
   );
@@ -224,6 +226,7 @@ const App = () => {
   useEffect(() => {
     if (!showSearch) return;
     searchInputRef.current?.focus();
+    setSearchIndex(0);
   }, [showSearch]);
 
   useEffect(() => {
@@ -238,17 +241,14 @@ const App = () => {
       const tag = target?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) return;
       const isMeta = event.metaKey || event.ctrlKey;
-      if (!isMeta || !event.shiftKey) return;
       const key = event.key.toLowerCase();
-      if (key === 'o') {
+      if (isMeta && event.altKey && key === 'o') {
         event.preventDefault();
-        setShowSearch(true);
-        setSearchQuery('');
+        openSearch();
       }
-      if (key === 'p') {
+      if (isMeta && event.shiftKey && key === 'p') {
         event.preventDefault();
-        setShowPathModal(true);
-        setPathInput(formatGsPath(currentBucket, currentPrefix));
+        openPathModal();
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -384,15 +384,27 @@ const App = () => {
 
   const filteredSearchEntries = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return searchEntries.slice(0, 200);
-    return searchEntries
-      .filter((entry) => entry.detail.toLowerCase().includes(query) || entry.label.toLowerCase().includes(query))
-      .slice(0, 200);
+    const filtered = !query
+      ? searchEntries
+      : searchEntries.filter(
+          (entry) =>
+            entry.detail.toLowerCase().includes(query) || entry.label.toLowerCase().includes(query)
+        );
+    return filtered.slice(0, 200);
   }, [searchEntries, searchQuery]);
+
+  useEffect(() => {
+    setSearchIndex(0);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setSearchIndex((prev) => Math.min(prev, Math.max(filteredSearchEntries.length - 1, 0)));
+  }, [filteredSearchEntries.length]);
 
   const openSearch = () => {
     setShowSearch(true);
     setSearchQuery('');
+    setSearchIndex(0);
   };
 
   const openPathModal = () => {
@@ -412,6 +424,21 @@ const App = () => {
       setPendingSelection(`file:${parts.length ? `${parts.join('/')}/` : ''}${fileName}`);
     }
     setShowSearch(false);
+  };
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredSearchEntries.length === 0) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSearchIndex((prev) => Math.min(prev + 1, filteredSearchEntries.length - 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSearchIndex((prev) => Math.max(prev - 1, 0));
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const entry = filteredSearchEntries[searchIndex];
+      if (entry) handleSearchSelect(entry);
+    }
   };
 
   const items = useMemo<Item[]>(() => {
@@ -442,6 +469,10 @@ const App = () => {
       return a.displayName.localeCompare(b.displayName);
     });
   }, [listing, currentPrefix]);
+
+  useEffect(() => {
+    setSelectedFiles(new Set());
+  }, [currentBucket, currentPrefix]);
 
   const breadcrumbs = useMemo(() => {
     if (!currentBucket) return [] as { label: string; bucket: string; prefix: string }[];
@@ -505,6 +536,7 @@ const App = () => {
     event.stopPropagation();
     const gsPath = `gs://${currentBucket}/${item.name}`;
     const isPrefix = item.type === 'prefix';
+    const canDelete = item.type === 'file';
     const items: MenuItem[] = [
       {
         label: 'Copy gs:// path',
@@ -527,6 +559,11 @@ const App = () => {
       {
         label: 'Download...',
         action: () => handleDownload(item),
+      },
+      {
+        label: 'Delete',
+        action: () => handleDelete([item.name]),
+        disabled: !canDelete,
       },
     ];
     setContextMenu({ x: event.clientX, y: event.clientY, items });
@@ -608,6 +645,31 @@ const App = () => {
     setError('');
     setShowPathModal(false);
     navigate(parsed.bucket, parsed.prefix, true);
+  };
+
+  const handleDelete = async (names: string[]) => {
+    if (!currentBucket || names.length === 0) return;
+    const confirmed = window.confirm(`Delete ${names.length} file${names.length === 1 ? '' : 's'}?`);
+    if (!confirmed) return;
+    setStatus('Deleting...');
+    const result = await window.gcs.delete({ bucket: currentBucket, names });
+    if (!result.ok) {
+      setError(result.error ?? 'Delete failed');
+    } else {
+      setStatus('Deleted');
+      setTimeout(() => setStatus(''), 1200);
+      setSelectedFiles((prev) => {
+        const next = new Set(prev);
+        names.forEach((name) => next.delete(name));
+        return next;
+      });
+      const data = await window.gcs.listObjects({
+        bucket: currentBucket,
+        prefix: currentPrefix,
+        delimiter: '/',
+      });
+      setListing(data);
+    }
   };
 
   const handleDrop = async (event: React.DragEvent, overridePrefix?: string) => {
@@ -841,7 +903,7 @@ const App = () => {
           </div>
           <div className="toolbar-actions">
             <button className="secondary-button" onClick={openSearch}>
-              Search
+              Quick Open
             </button>
             <button className="primary-button" onClick={openPathModal}>
               Go to path...
@@ -860,9 +922,13 @@ const App = () => {
           onDrop={(event) => handleDrop(event)}
         >
           <div className="list-header">
-            <div className="col-name">Name</div>
+            <div className="col-name">
+              <span className="col-check">Select</span>
+              <span>Name</span>
+            </div>
             <div className="col-size">Size</div>
             <div className="col-updated">Updated</div>
+            <div className="col-actions">Actions</div>
           </div>
           <div className="list-body">
             {loading ? (
@@ -873,6 +939,7 @@ const App = () => {
               items.map((item, index) => {
                 const key = `${item.type}:${item.name}`;
                 const selected = key === selectedKey;
+                const isChecked = item.type === 'file' && selectedFiles.has(item.name);
                 return (
                   <div
                     key={key}
@@ -906,11 +973,45 @@ const App = () => {
                     }
                   >
                     <div className="col-name">
+                      {item.type === 'file' ? (
+                        <input
+                          className="row-check"
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(event) => {
+                            event.stopPropagation();
+                            setSelectedFiles((prev) => {
+                              const next = new Set(prev);
+                              if (event.target.checked) next.add(item.name);
+                              else next.delete(item.name);
+                              return next;
+                            });
+                          }}
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      ) : (
+                        <span className="row-check placeholder" />
+                      )}
                       <span className={`icon ${item.type}`}>{item.type === 'prefix' ? 'DIR' : 'FILE'}</span>
                       <span className="item-name">{item.displayName}</span>
                     </div>
                     <div className="col-size">{item.type === 'file' ? formatBytes(item.size ?? 0) : '--'}</div>
                     <div className="col-updated">{item.type === 'file' ? formatDate(item.updated) : '--'}</div>
+                    <div className="col-actions">
+                      {item.type === 'file' ? (
+                        <button
+                          className="row-action"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDownload(item);
+                          }}
+                        >
+                          Download
+                        </button>
+                      ) : (
+                        <span className="row-action placeholder" />
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -928,7 +1029,14 @@ const App = () => {
               <span>No bucket selected</span>
             )}
           </div>
-          <div className="status-right">{status || error}</div>
+          <div className="status-right">
+            {selectedFiles.size > 0 ? (
+              <button className="danger-button" onClick={() => handleDelete(Array.from(selectedFiles))}>
+                Delete {selectedFiles.size}
+              </button>
+            ) : null}
+            <span>{status || error}</span>
+          </div>
         </footer>
       </main>
 
@@ -942,14 +1050,18 @@ const App = () => {
                   Shows already-loaded folders and files from the current view.
                 </div>
               </div>
-              <div className="modal-shortcut">Cmd/Ctrl+Shift+O</div>
+              <div className="modal-shortcut">Cmd/Ctrl+Opt+O</div>
             </div>
             <input
               ref={searchInputRef}
               className="modal-input"
               placeholder="Type to search paths..."
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setSearchIndex(0);
+              }}
+              onKeyDown={handleSearchKeyDown}
             />
             <div className="modal-list">
               {!currentBucket ? (
@@ -957,10 +1069,10 @@ const App = () => {
               ) : filteredSearchEntries.length === 0 ? (
                 <div className="modal-empty">No matches in loaded items.</div>
               ) : (
-                filteredSearchEntries.map((entry) => (
+                filteredSearchEntries.map((entry, index) => (
                   <button
                     key={`${entry.type}:${entry.name}`}
-                    className="modal-item"
+                    className={`modal-item ${index === searchIndex ? 'active' : ''}`}
                     onClick={() => handleSearchSelect(entry)}
                   >
                     <span className="modal-item-title">{entry.label}</span>

@@ -121,3 +121,10 @@ export const uploadPaths = async (req: UploadRequest) => {
     }
   }
 };
+
+export const deleteObjects = async (bucket: string, names: string[]) => {
+  const bucketRef = storage.bucket(bucket);
+  for (const name of names) {
+    await bucketRef.file(name).delete({ ignoreNotFound: true });
+  }
+};

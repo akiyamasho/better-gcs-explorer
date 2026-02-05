@@ -1,4 +1,5 @@
 import type {
+  DeleteRequest,
   DownloadRequest,
   GcsBucket,
   ListObjectsRequest,
@@ -14,6 +15,7 @@ declare global {
       listObjects: (req: ListObjectsRequest) => Promise<ListObjectsResponse>;
       download: (req: DownloadRequest) => Promise<{ canceled: boolean } | { canceled: boolean; error?: string }>;
       upload: (req: UploadRequest) => Promise<{ ok: boolean; error?: string }>;
+      delete: (req: DeleteRequest) => Promise<{ ok: boolean; error?: string }>;
       startDrag: (req: StartDragRequest) => Promise<{ ok: boolean; error?: string }>;
       chooseUpload: () => Promise<{ canceled: boolean; paths: string[] }>;
     };

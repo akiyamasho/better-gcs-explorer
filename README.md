@@ -20,16 +20,12 @@ Local-only Electron app for browsing Google Cloud Storage with a Finder-like UI.
 - gcloud CLI
 - Application Default Credentials: `gcloud auth application-default login`
 
-## Run
-```bash
-make install
-make dev
-```
-
 ## Package and run (macOS)
 ```bash
 make run
 ```
+
+NOTE: `make dev` for hot-reloading dev runs has an issue and is currently commented-out.
 
 ## Build DMG (macOS)
 ```bash
