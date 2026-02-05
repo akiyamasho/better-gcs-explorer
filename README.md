@@ -22,7 +22,8 @@ Local-only Electron app for browsing Google Cloud Storage with a Finder-like UI.
 
 ## Prereqs
 - Node.js (18+)
-- gcloud CLI
+- `gcloud` (`brew install gcloud-cli`)
+- `pnpm` (`brew install pnpm`)
 - Application Default Credentials: `gcloud auth application-default login`
 
 ## Package and run (macOS)
