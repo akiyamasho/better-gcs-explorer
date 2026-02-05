@@ -2,7 +2,7 @@
 
 ![Version](https://img.shields.io/badge/version-v1.1.0-blue)
 ![Release](https://img.shields.io/badge/release-stable-brightgreen)
-[![Download DMG](https://img.shields.io/badge/Download-DMG-blue?logo=apple)](https://github.com/akiyamasho/better-gcs-explorer/releases/download/untagged-af0952ba3080c6c6b81e/Better.GCS.Explorer-1.1.0-arm64.dmg)
+[![Download DMG](https://img.shields.io/badge/Download-DMG-blue?logo=apple)](https://github.com/akiyamasho/better-gcs-explorer/releases/download/untagged-848e2bc47c79914a90cf/Better-GCS-Explorer-1.1.0-arm64.dmg)
 
 Local-only Electron app for browsing Google Cloud Storage with a Finder-like UI.
 
