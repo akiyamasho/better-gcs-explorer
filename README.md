@@ -44,4 +44,4 @@ make dmg
 - Drop local files or folders into the list to upload to the current prefix.
 
 ## Changelog
-See `CHANGELOG.md`.
+See [`CHANGELOG.md`](./CHANGELOG.md)
