@@ -1,3 +1,6 @@
+import { loadGcloudEnv } from './gcloud-env';
+loadGcloudEnv();
+
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron';
 import path from 'node:path';
 import {
