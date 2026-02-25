@@ -724,6 +724,261 @@ body {
   margin-top: 8px;
 }
 
+/* Service tab switcher */
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.service-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--panel-strong);
+  border-bottom: 1px solid var(--border);
+  padding: 0 18px;
+  -webkit-app-region: drag;
+}
+
+.service-tab {
+  -webkit-app-region: no-drag;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.service-tab:hover {
+  color: var(--ink);
+}
+
+.service-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.service-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.service-content .app {
+  min-height: 0;
+  flex: 1;
+}
+
+/* BigQuery tab bar */
+
+.bq-tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 24px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.bq-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.bq-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bq-tab:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.bq-tab.active {
+  background: #fff;
+  border-color: var(--border);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.bq-tab-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bq-tab-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.bq-tab-close:hover {
+  color: var(--ink);
+}
+
+.bq-tab-add {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.bq-tab-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.bq-tab-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* BigQuery editor */
+
+.bq-editor-area {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bq-editor {
+  width: 100%;
+  min-height: 120px;
+  max-height: 300px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+  line-height: 1.5;
+}
+
+.bq-editor:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* BigQuery results */
+
+.bq-results-area {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 24px;
+}
+
+.bq-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bq-results-meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.bq-error {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ef4444;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bq-table-wrapper {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.bq-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.bq-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--panel-strong);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.bq-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bq-table tr:last-child td {
+  border-bottom: none;
+}
+
+.bq-table tr:hover td {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.bq-active-table {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.bq-table-type {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;

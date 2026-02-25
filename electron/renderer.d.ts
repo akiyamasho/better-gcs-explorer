@@ -1,4 +1,11 @@
 import type {
+  BqDataset,
+  BqProject,
+  BqQueryRequest,
+  BqQueryResult,
+  BqSavedQuery,
+  BqTable,
+  BqTablePreview,
   DeleteRequest,
   DownloadManyRequest,
   DownloadRequest,
@@ -9,6 +16,8 @@ import type {
   StartDragRequest,
   UploadRequest,
 } from '../shared/types';
+
+type IpcResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 declare global {
   interface Window {
@@ -24,6 +33,19 @@ declare global {
       createFolder: (req: CreateFolderRequest) => Promise<{ ok: boolean; error?: string }>;
       startDrag: (req: StartDragRequest) => Promise<{ ok: boolean; error?: string }>;
       chooseUpload: () => Promise<{ canceled: boolean; paths: string[] }>;
+    };
+    bq: {
+      listProjects: () => Promise<IpcResult<BqProject[]>>;
+      listDatasets: (req: { projectId: string }) => Promise<IpcResult<BqDataset[]>>;
+      listTables: (req: { projectId: string; datasetId: string }) => Promise<IpcResult<BqTable[]>>;
+      previewTable: (req: {
+        projectId: string;
+        datasetId: string;
+        tableId: string;
+      }) => Promise<IpcResult<BqTablePreview>>;
+      runQuery: (req: BqQueryRequest) => Promise<IpcResult<BqQueryResult>>;
+      loadSavedQueries: () => Promise<IpcResult<BqSavedQuery[]>>;
+      saveSavedQueries: (queries: BqSavedQuery[]) => Promise<{ ok: boolean; error?: string }>;
     };
   }
 }

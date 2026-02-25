@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type {
+  BqQueryRequest,
+  BqSavedQuery,
   CreateFolderRequest,
   DeleteRequest,
   DownloadManyRequest,
@@ -19,4 +21,16 @@ contextBridge.exposeInMainWorld('gcs', {
   createFolder: (req: CreateFolderRequest) => ipcRenderer.invoke('gcs:create-folder', req),
   startDrag: (req: StartDragRequest) => ipcRenderer.invoke('gcs:start-drag', req),
   chooseUpload: () => ipcRenderer.invoke('gcs:choose-upload'),
+});
+
+contextBridge.exposeInMainWorld('bq', {
+  listProjects: () => ipcRenderer.invoke('bq:list-projects'),
+  listDatasets: (req: { projectId: string }) => ipcRenderer.invoke('bq:list-datasets', req),
+  listTables: (req: { projectId: string; datasetId: string }) =>
+    ipcRenderer.invoke('bq:list-tables', req),
+  previewTable: (req: { projectId: string; datasetId: string; tableId: string }) =>
+    ipcRenderer.invoke('bq:preview-table', req),
+  runQuery: (req: BqQueryRequest) => ipcRenderer.invoke('bq:run-query', req),
+  loadSavedQueries: () => ipcRenderer.invoke('bq:load-saved-queries'),
+  saveSavedQueries: (queries: BqSavedQuery[]) => ipcRenderer.invoke('bq:save-queries', queries),
 });

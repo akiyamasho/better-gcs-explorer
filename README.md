@@ -1,14 +1,15 @@
-# Better GCS Explorer
+# Better GCP
 
-![Version](https://img.shields.io/badge/version-v1.1.0-blue)
+![Version](https://img.shields.io/badge/version-v2.0.0-blue)
 ![Release](https://img.shields.io/badge/release-stable-brightgreen)
-[![Download DMG](https://img.shields.io/badge/Download-DMG-blue?logo=apple)](https://github.com/akiyamasho/better-gcs-explorer/releases/download/untagged-848e2bc47c79914a90cf/Better-GCS-Explorer-1.1.0-arm64.dmg)
 
-Local-only Electron app for browsing Google Cloud Storage with a Finder-like UI.
+Local-only Electron app for browsing Google Cloud Platform services with a Finder-like UI.
 
 ![Screenshot](./doc/screenshot.png)
 
-## Features
+## Services
+
+### Cloud Storage
 - Finder-like browsing with breadcrumbs and directory tree.
 - Favorites and recents for fast bucket access.
 - Quick Open (Cmd/Ctrl+Shift+O) for already-loaded items.
@@ -17,8 +18,16 @@ Local-only Electron app for browsing Google Cloud Storage with a Finder-like UI.
 - Drag-and-drop upload and drag-out download.
 - Batch selection bar with download/delete actions and select-all toggle.
 - Per-row download button and file-only delete actions.
-- Quick Open keyboard navigation (up/down + enter).
 - Create-folder action in empty-space context menu.
+
+### BigQuery
+- Sidebar tree for projects, datasets, and tables.
+- Quick Jump (Cmd/Ctrl+Shift+P) with regex search across loaded tables.
+- Table preview (LIMIT 5) on click.
+- Query editor with Cmd/Ctrl+Enter to run.
+- Tab-based query management for switching between queries.
+- Save and load queries.
+- Favorites for frequently accessed tables.
 
 ## Prereqs
 - Node.js (18+)
