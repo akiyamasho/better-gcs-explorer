@@ -4,8 +4,7 @@ install:
 	@if [ ! -d node_modules ]; then pnpm install; fi
 
 dev: install
-	echo "There is an issue with Electron dev when testing in Silicon Mac. Please use `make run` instead."
-#	env -u ELECTRON_RUN_AS_NODE pnpm run dev
+	pnpm run dev
 
 run: install
 	pnpm run build
