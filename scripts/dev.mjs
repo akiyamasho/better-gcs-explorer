@@ -15,7 +15,7 @@ const vite = spawn(bin('vite'), [], {
   cwd: root,
 });
 
-const waitOn = spawn(bin('wait-on'), ['http://localhost:5173', 'dist-electron/main.js'], {
+const waitOn = spawn(bin('wait-on'), ['http://127.0.0.1:5173', 'dist-electron/main.js'], {
   stdio: 'inherit',
   cwd: root,
 });
@@ -26,7 +26,8 @@ waitOn.on('exit', (code) => {
   if (code) {
     process.exit(code);
   }
-  const env = { ...process.env, VITE_DEV_SERVER_URL: 'http://localhost:5173' };
+  const env = { ...process.env, VITE_DEV_SERVER_URL: 'http://127.0.0.1:5173' };
+  delete env.ELECTRON_RUN_AS_NODE;
   electron = spawn(bin('electron'), ['.'], {
     stdio: 'inherit',
     cwd: root,

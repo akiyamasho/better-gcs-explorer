@@ -58,3 +58,47 @@ export type CreateFolderRequest = {
   prefix: string;
   name: string;
 };
+
+export type BqProject = {
+  id: string;
+  name: string;
+};
+
+export type BqDataset = {
+  id: string;
+  projectId: string;
+};
+
+export type BqTable = {
+  id: string;
+  datasetId: string;
+  projectId: string;
+  type: string;
+};
+
+export type BqTablePreview = {
+  columns: string[];
+  rows: string[][];
+  totalRows: number;
+};
+
+export type BqQueryRequest = {
+  query: string;
+  projectId?: string;
+};
+
+export type BqQueryResult = {
+  columns: string[];
+  rows: string[][];
+  totalRows: number;
+  durationMs: number;
+  bytesProcessed: number;
+};
+
+export type BqSavedQuery = {
+  id: string;
+  name: string;
+  query: string;
+  projectId?: string;
+  createdAt: string;
+};

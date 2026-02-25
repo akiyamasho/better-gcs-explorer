@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron';
 import path from 'node:path';
 import {
   deleteObjects,
@@ -11,6 +11,15 @@ import {
   listObjects,
   uploadPaths,
 } from './gcs';
+import {
+  listProjects,
+  listDatasets,
+  listTables,
+  previewTable,
+  runQuery,
+  loadSavedQueries,
+  saveSavedQueries,
+} from './bigquery';
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
 
@@ -22,7 +31,7 @@ const createWindow = () => {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: 'Better GCS Explorer',
+    title: 'Better GCP',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -150,4 +159,72 @@ ipcMain.handle('gcs:start-drag', async (event, req) => {
   } catch (err) {
     return { ok: false, error: String(err) };
   }
+});
+
+ipcMain.handle('bq:list-projects', async () => {
+  try {
+    return { ok: true, data: await listProjects() };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+});
+
+ipcMain.handle('bq:list-datasets', async (_event, req) => {
+  try {
+    const { projectId } = req as { projectId: string };
+    return { ok: true, data: await listDatasets(projectId) };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+});
+
+ipcMain.handle('bq:list-tables', async (_event, req) => {
+  try {
+    const { projectId, datasetId } = req as { projectId: string; datasetId: string };
+    return { ok: true, data: await listTables(projectId, datasetId) };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+});
+
+ipcMain.handle('bq:preview-table', async (_event, req) => {
+  try {
+    const { projectId, datasetId, tableId } = req as {
+      projectId: string;
+      datasetId: string;
+      tableId: string;
+    };
+    return { ok: true, data: await previewTable(projectId, datasetId, tableId) };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+});
+
+ipcMain.handle('bq:run-query', async (_event, req) => {
+  try {
+    return { ok: true, data: await runQuery(req) };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+});
+
+ipcMain.handle('bq:load-saved-queries', async () => {
+  try {
+    return { ok: true, data: await loadSavedQueries() };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+});
+
+ipcMain.handle('bq:save-queries', async (_event, req) => {
+  try {
+    await saveSavedQueries(req);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+});
+
+ipcMain.handle('shell:open-external', async (_event, url: string) => {
+  await shell.openExternal(url);
 });

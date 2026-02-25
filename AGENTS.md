@@ -1,14 +1,14 @@
-# Better GCS Explorer - Agent Onboarding
+# Better GCP - Agent Onboarding
 
 ## Project Overview
 
-A local-only Electron desktop app for browsing Google Cloud Storage with a Finder-like UI. Built with React (renderer) and Node.js (main process), using the `@google-cloud/storage` SDK.
+A local-only Electron desktop app for browsing Google Cloud Platform services with a Finder-like UI. Built with React (renderer) and Node.js (main process), using `@google-cloud/storage` and `@google-cloud/bigquery` SDKs.
 
 ## Tech Stack
 
 - **Runtime**: Electron 30, Node.js 18+
 - **Frontend**: React 18, TypeScript, Vite
-- **Backend (main process)**: TypeScript, `@google-cloud/storage`
+- **Backend (main process)**: TypeScript, `@google-cloud/storage`, `@google-cloud/bigquery`
 - **Package manager**: pnpm
 - **Build**: Vite (renderer) + tsc (electron), electron-builder (packaging)
 - **Platform**: macOS (primary target)
@@ -17,17 +17,20 @@ A local-only Electron desktop app for browsing Google Cloud Storage with a Finde
 
 ```
 ├── src/                  # Renderer process (React UI)
-│   ├── App.tsx           # Main application component
+│   ├── App.tsx           # Root component with service tab switching
+│   ├── GcsTab.tsx        # Cloud Storage tab (sidebar, file list, modals)
+│   ├── BigQueryTab.tsx   # BigQuery tab (tree, query editor, results)
 │   ├── main.tsx          # React entry point
 │   └── styles.css        # Global styles
 ├── electron/             # Main process (Electron backend)
 │   ├── main.ts           # Electron app entry, window creation, IPC handlers
 │   ├── gcs.ts            # GCS operations (list, download, upload, delete)
+│   ├── bigquery.ts       # BigQuery operations (list, query, saved queries)
 │   ├── preload.ts        # Context bridge for renderer ↔ main IPC
 │   ├── renderer.d.ts     # Type declarations for preload API
 │   └── types.ts          # Electron-side type definitions
 ├── shared/               # Shared types between renderer and main process
-│   └── types.ts          # GCS request/response types
+│   └── types.ts          # GCS and BigQuery request/response types
 ├── scripts/              # Build and dev scripts
 │   ├── dev.mjs           # Dev server launcher
 │   └── package.mjs       # Packaging script
@@ -45,7 +48,7 @@ A local-only Electron desktop app for browsing Google Cloud Storage with a Finde
 
 When adding new code, follow Clean Architecture layering:
 - **shared/**: Domain types and interfaces shared across processes. No dependencies on Electron or React.
-- **electron/**: Infrastructure and application logic for the main process. GCS operations, file system access, IPC handlers.
+- **electron/**: Infrastructure and application logic for the main process. GCS/BigQuery operations, file system access, IPC handlers.
 - **src/**: Presentation layer. React components, UI state, and user interaction logic.
 
 Keep dependencies flowing inward: `src/` and `electron/` may depend on `shared/`, but `shared/` must not import from `src/` or `electron/`.
@@ -62,7 +65,9 @@ pnpm run typecheck  # Type-check both renderer and electron
 pnpm run package    # Package with electron-builder
 ```
 
-Note: `make dev` (hot-reload) is currently broken on Apple Silicon. Use `make run` instead.
+```bash
+make dev        # Dev mode with hot-reload (Electron + Vite + tsc watch)
+```
 
 ## Path Alias
 
@@ -71,9 +76,17 @@ Note: `make dev` (hot-reload) is currently broken on Apple Silicon. Use `make ru
 ## IPC Pattern
 
 Renderer ↔ Main communication uses Electron IPC:
-1. Handlers registered in `electron/main.ts` via `ipcMain.handle('gcs:<action>', ...)`
-2. Exposed to renderer via `electron/preload.ts` context bridge
-3. Called from React as `window.electronAPI.gcs*(...)`
+1. Handlers registered in `electron/main.ts` via `ipcMain.handle('<service>:<action>', ...)`
+2. Exposed to renderer via `electron/preload.ts` context bridge as `window.gcs.*`, `window.bq.*`, and `window.shell.*`
+3. Called from React components via the corresponding window API
+
+When adding a new service:
+1. Create `electron/<service>.ts` with operations
+2. Add types to `electron/types.ts` and `shared/types.ts`
+3. Register IPC handlers in `electron/main.ts`
+4. Expose via `contextBridge` in `electron/preload.ts`
+5. Declare on `Window` in `electron/renderer.d.ts`
+6. Create `src/<Service>Tab.tsx` and add to `src/App.tsx` tab switcher
 
 ## Coding Rules
 
@@ -137,4 +150,4 @@ Use **Conventional Commits** for all commit messages:
 - Use lowercase for the description. Do not end with a period.
 - Keep the subject line under 72 characters.
 - Use the body to explain *what* and *why*, not *how*.
-- Scope is optional but encouraged (e.g., `feat(gcs): add folder creation`).
+- Scope is optional but encouraged (e.g., `feat(gcs): add folder creation`, `feat(bq): add query editor`).
