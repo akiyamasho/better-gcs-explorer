@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron';
 import path from 'node:path';
 import {
   deleteObjects,
@@ -223,4 +223,8 @@ ipcMain.handle('bq:save-queries', async (_event, req) => {
   } catch (err) {
     return { ok: false, error: String(err) };
   }
+});
+
+ipcMain.handle('shell:open-external', async (_event, url: string) => {
+  await shell.openExternal(url);
 });

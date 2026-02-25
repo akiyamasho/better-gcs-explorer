@@ -47,6 +47,9 @@ declare global {
       loadSavedQueries: () => Promise<IpcResult<BqSavedQuery[]>>;
       saveSavedQueries: (queries: BqSavedQuery[]) => Promise<{ ok: boolean; error?: string }>;
     };
+    shell: {
+      openExternal: (url: string) => Promise<void>;
+    };
   }
 }
 

@@ -66,6 +66,209 @@ const writeStringList = (key: string, values: string[]) => {
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+const IMAGE_URL_RE = /^https?:\/\/\S+\.(png|jpe?g|gif|webp|svg|bmp|ico|tiff?)(\?\S*)?$/i;
+const URL_RE = /^https?:\/\/\S+$/i;
+
+type CellCoord = { row: number; col: number };
+
+const renderCellContent = (value: string) => {
+  if (!value) return value;
+  if (IMAGE_URL_RE.test(value)) {
+    return (
+      <img
+        src={value}
+        alt=""
+        className="bq-cell-image"
+        title={value}
+        onClick={(e) => e.stopPropagation()}
+      />
+    );
+  }
+  if (URL_RE.test(value)) {
+    return (
+      <a
+        href="#"
+        className="bq-cell-link"
+        title={value}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.shell.openExternal(value);
+        }}
+      >
+        {value}
+      </a>
+    );
+  }
+  return value;
+};
+
+const BqGrid = ({ columns, rows }: { columns: string[]; rows: string[][] }) => {
+  const [anchor, setAnchor] = useState<CellCoord | null>(null);
+  const [focus, setFocus] = useState<CellCoord | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const inRange = useCallback(
+    (row: number, col: number) => {
+      if (!anchor || !focus) return false;
+      const r0 = Math.min(anchor.row, focus.row);
+      const r1 = Math.max(anchor.row, focus.row);
+      const c0 = Math.min(anchor.col, focus.col);
+      const c1 = Math.max(anchor.col, focus.col);
+      return row >= r0 && row <= r1 && col >= c0 && col <= c1;
+    },
+    [anchor, focus]
+  );
+
+  const handleCellMouseDown = useCallback(
+    (row: number, col: number, e: React.MouseEvent) => {
+      if ((e.target as HTMLElement).tagName === 'A' || (e.target as HTMLElement).tagName === 'IMG')
+        return;
+      e.preventDefault();
+      wrapperRef.current?.focus();
+      if (e.shiftKey && anchor) {
+        setFocus({ row, col });
+      } else {
+        setAnchor({ row, col });
+        setFocus({ row, col });
+      }
+      setDragging(true);
+    },
+    [anchor]
+  );
+
+  const handleCellMouseEnter = useCallback(
+    (row: number, col: number) => {
+      if (dragging) setFocus({ row, col });
+    },
+    [dragging]
+  );
+
+  useEffect(() => {
+    const up = () => setDragging(false);
+    window.addEventListener('mouseup', up);
+    return () => window.removeEventListener('mouseup', up);
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === 'c' && anchor && focus) {
+        e.preventDefault();
+        const r0 = Math.min(anchor.row, focus.row);
+        const r1 = Math.max(anchor.row, focus.row);
+        const c0 = Math.min(anchor.col, focus.col);
+        const c1 = Math.max(anchor.col, focus.col);
+        const lines: string[] = [];
+        for (let r = r0; r <= r1; r++) {
+          const cells: string[] = [];
+          for (let c = c0; c <= c1; c++) {
+            cells.push(rows[r]?.[c] ?? '');
+          }
+          lines.push(cells.join('\t'));
+        }
+        navigator.clipboard.writeText(lines.join('\n'));
+      }
+      if (mod && e.key === 'a') {
+        e.preventDefault();
+        if (rows.length > 0 && columns.length > 0) {
+          setAnchor({ row: 0, col: 0 });
+          setFocus({ row: rows.length - 1, col: columns.length - 1 });
+        }
+      }
+      if (focus && !mod) {
+        let nr = focus.row;
+        let nc = focus.col;
+        if (e.key === 'ArrowDown') {
+          nr = Math.min(nr + 1, rows.length - 1);
+          e.preventDefault();
+        }
+        if (e.key === 'ArrowUp') {
+          nr = Math.max(nr - 1, 0);
+          e.preventDefault();
+        }
+        if (e.key === 'ArrowRight') {
+          nc = Math.min(nc + 1, columns.length - 1);
+          e.preventDefault();
+        }
+        if (e.key === 'ArrowLeft') {
+          nc = Math.max(nc - 1, 0);
+          e.preventDefault();
+        }
+        if (e.key === 'Tab') {
+          nc = Math.min(nc + 1, columns.length - 1);
+          e.preventDefault();
+        }
+        if (nr !== focus.row || nc !== focus.col) {
+          if (e.shiftKey) {
+            setFocus({ row: nr, col: nc });
+          } else {
+            setAnchor({ row: nr, col: nc });
+            setFocus({ row: nr, col: nc });
+          }
+        }
+      }
+    },
+    [anchor, focus, rows, columns]
+  );
+
+  const handleHeaderClick = useCallback(
+    (col: number, e: React.MouseEvent) => {
+      e.preventDefault();
+      wrapperRef.current?.focus();
+      setAnchor({ row: 0, col });
+      setFocus({ row: rows.length - 1, col });
+    },
+    [rows.length]
+  );
+
+  return (
+    <div
+      ref={wrapperRef}
+      className="bq-grid-wrapper"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
+      <table className="bq-table">
+        <thead>
+          <tr>
+            {columns.map((col, ci) => (
+              <th
+                key={col}
+                onClick={(e) => handleHeaderClick(ci, e)}
+                className="bq-th-clickable"
+              >
+                {col}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri}>
+              {row.map((cell, ci) => {
+                const selected = inRange(ri, ci);
+                const isCursor = focus?.row === ri && focus?.col === ci;
+                return (
+                  <td
+                    key={ci}
+                    className={`${selected ? 'bq-cell-selected' : ''} ${isCursor ? 'bq-cell-cursor' : ''}`}
+                    onMouseDown={(e) => handleCellMouseDown(ri, ci, e)}
+                    onMouseEnter={() => handleCellMouseEnter(ri, ci)}
+                  >
+                    {renderCellContent(cell)}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 const BigQueryTab = () => {
   const [projects, setProjects] = useState<BqProject[]>([]);
   const [datasets, setDatasets] = useState<Record<string, BqDataset[]>>({});
@@ -722,24 +925,7 @@ const BigQueryTab = () => {
                 {formatBytes(activeTab.result.bytesProcessed)} processed
               </div>
               <div className="bq-table-wrapper">
-                <table className="bq-table">
-                  <thead>
-                    <tr>
-                      {activeTab.result.columns.map((col) => (
-                        <th key={col}>{col}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeTab.result.rows.map((row, i) => (
-                      <tr key={i}>
-                        {row.map((cell, j) => (
-                          <td key={j}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <BqGrid columns={activeTab.result.columns} rows={activeTab.result.rows} />
               </div>
             </div>
           )}
@@ -752,24 +938,7 @@ const BigQueryTab = () => {
               {previewLoading && <div className="bq-results-meta">Loading preview...</div>}
               {preview && (
                 <div className="bq-table-wrapper">
-                  <table className="bq-table">
-                    <thead>
-                      <tr>
-                        {preview.columns.map((col) => (
-                          <th key={col}>{col}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {preview.rows.map((row, i) => (
-                        <tr key={i}>
-                          {row.map((cell, j) => (
-                            <td key={j}>{cell}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <BqGrid columns={preview.columns} rows={preview.rows} />
                 </div>
               )}
             </div>

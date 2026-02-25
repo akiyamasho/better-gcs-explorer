@@ -34,3 +34,7 @@ contextBridge.exposeInMainWorld('bq', {
   loadSavedQueries: () => ipcRenderer.invoke('bq:load-saved-queries'),
   saveSavedQueries: (queries: BqSavedQuery[]) => ipcRenderer.invoke('bq:save-queries', queries),
 });
+
+contextBridge.exposeInMainWorld('shell', {
+  openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
+});
