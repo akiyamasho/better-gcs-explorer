@@ -66,6 +66,13 @@ const writeStringList = (key: string, values: string[]) => {
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+const middleTruncate = (text: string, maxLen = 28): string => {
+  if (text.length <= maxLen) return text;
+  const startLen = Math.ceil((maxLen - 1) / 2);
+  const endLen = Math.floor((maxLen - 1) / 2);
+  return text.slice(0, startLen) + '\u2026' + text.slice(text.length - endLen);
+};
+
 const IMAGE_URL_RE = /^https?:\/\/\S+\.(png|jpe?g|gif|webp|svg|bmp|ico|tiff?)(\?\S*)?$/i;
 const URL_RE = /^https?:\/\/\S+$/i;
 
@@ -280,6 +287,8 @@ const BigQueryTab = () => {
   const [extraProjects, setExtraProjects] = useState<string[]>(() => readStringList(EXTRA_PROJECTS_KEY));
   const [showAddProject, setShowAddProject] = useState(false);
   const [newProjectId, setNewProjectId] = useState('');
+  const [addProjectLoading, setAddProjectLoading] = useState(false);
+  const [addProjectError, setAddProjectError] = useState('');
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [preview, setPreview] = useState<BqTablePreview | null>(null);
   const [previewTarget, setPreviewTarget] = useState('');
@@ -479,18 +488,29 @@ const BigQueryTab = () => {
     );
   }, []);
 
-  const handleAddProject = useCallback(() => {
+  const handleAddProject = useCallback(async () => {
     const trimmed = newProjectId.trim();
     if (!trimmed) return;
     if (projects.some((p) => p.id === trimmed)) {
       setShowAddProject(false);
       setNewProjectId('');
+      setAddProjectError('');
+      return;
+    }
+    setAddProjectLoading(true);
+    setAddProjectError('');
+    const res = await window.bq.listDatasets({ projectId: trimmed });
+    setAddProjectLoading(false);
+    if (!res.ok) {
+      setAddProjectError(`Cannot access project "${trimmed}": ${res.error}`);
       return;
     }
     setProjects((prev) => [...prev, { id: trimmed, name: trimmed }]);
     setExtraProjects((prev) => [...prev, trimmed]);
+    setDatasets((prev) => ({ ...prev, [trimmed]: res.data }));
     setShowAddProject(false);
     setNewProjectId('');
+    setAddProjectError('');
   }, [newProjectId, projects]);
 
   const handleRemoveExtraProject = useCallback(
@@ -723,23 +743,33 @@ const BigQueryTab = () => {
             </button>
           </div>
           {showAddProject && (
-            <form
-              className="favorite-form"
-              style={{ marginBottom: 12 }}
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleAddProject();
-              }}
-            >
-              <input
-                className="favorite-input"
-                value={newProjectId}
-                onChange={(e) => setNewProjectId(e.target.value)}
-                placeholder="project-id"
-                autoFocus
-              />
-              <button className="tiny-action" type="submit">Add</button>
-            </form>
+            <div style={{ marginBottom: 12 }}>
+              <form
+                className="favorite-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddProject();
+                }}
+              >
+                <input
+                  className="favorite-input"
+                  value={newProjectId}
+                  onChange={(e) => {
+                    setNewProjectId(e.target.value);
+                    setAddProjectError('');
+                  }}
+                  placeholder="project-id"
+                  disabled={addProjectLoading}
+                  autoFocus
+                />
+                <button className="tiny-action" type="submit" disabled={addProjectLoading}>
+                  {addProjectLoading ? '...' : 'Add'}
+                </button>
+              </form>
+              {addProjectError && (
+                <div className="add-project-error">{addProjectError}</div>
+              )}
+            </div>
           )}
           <div className="tree">
             {projects.map((project) => {
@@ -761,8 +791,8 @@ const BigQueryTab = () => {
                     >
                       {isFavProject ? '\u2605' : '\u2606'}
                     </button>
-                    <button className="tree-label" onClick={() => toggleProjectExpand(project.id)}>
-                      {project.name}
+                    <button className="tree-label" onClick={() => toggleProjectExpand(project.id)} title={project.name}>
+                      {middleTruncate(project.name, 26)}
                     </button>
                     {isExtraProject && (
                       <button
@@ -793,8 +823,9 @@ const BigQueryTab = () => {
                               <button
                                 className="tree-label"
                                 onClick={() => toggleDatasetExpand(project.id, ds.id)}
+                                title={ds.id}
                               >
-                                {ds.id}
+                                {middleTruncate(ds.id, 22)}
                               </button>
                             </div>
                             {expanded.datasets[dsKey] && (
@@ -829,8 +860,9 @@ const BigQueryTab = () => {
                                         onClick={() =>
                                           handlePreviewTable(project.id, ds.id, table.id)
                                         }
+                                        title={table.id}
                                       >
-                                        {table.id}
+                                        {middleTruncate(table.id, 20)}
                                         <span className="bq-table-type">{table.type === 'VIEW' ? ' (view)' : ''}</span>
                                       </button>
                                     </div>
