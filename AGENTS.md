@@ -65,7 +65,9 @@ pnpm run typecheck  # Type-check both renderer and electron
 pnpm run package    # Package with electron-builder
 ```
 
-Note: `make dev` (hot-reload) is currently broken on Apple Silicon. Use `make run` instead.
+```bash
+make dev        # Dev mode with hot-reload (Electron + Vite + tsc watch)
+```
 
 ## Path Alias
 
@@ -75,7 +77,7 @@ Note: `make dev` (hot-reload) is currently broken on Apple Silicon. Use `make ru
 
 Renderer ↔ Main communication uses Electron IPC:
 1. Handlers registered in `electron/main.ts` via `ipcMain.handle('<service>:<action>', ...)`
-2. Exposed to renderer via `electron/preload.ts` context bridge as `window.gcs.*` and `window.bq.*`
+2. Exposed to renderer via `electron/preload.ts` context bridge as `window.gcs.*`, `window.bq.*`, and `window.shell.*`
 3. Called from React components via the corresponding window API
 
 When adding a new service:
